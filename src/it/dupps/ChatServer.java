@@ -10,53 +10,75 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class ChatServer {
+public class ChatServer implements Runnable {
 
-    private Socket          socket   = null;
-    private ServerSocket    server   = null;
-    private DataInputStream streamIn =  null;
+    private Socket socket = null;
+    private ServerSocket server = null;
+    private Thread thread = null;
+    private DataInputStream streamIn = null;
 
     public ChatServer(int port) {
         try {
             System.out.println("Binding to port " + port + ", please wait  ...");
             server = new ServerSocket(port);
             System.out.println("Server started: " + server);
-            System.out.println("Waiting for a client ...");
-            socket = server.accept();
-            System.out.println("Client accepted: " + socket);
-            open();
-            boolean done = false;
-            while (!done) {
-                try {
-                    String line = streamIn.readUTF();
-                    System.out.println(line);
-                    done = line.equals(".bye");
-                }
-                catch(IOException ioe) {
-                    done = true;
-                }
-            }
-            close();
+            start();
+        } catch (IOException ioe) {
+            System.out.println(ioe);
+        }
+    }
 
-        } catch(IOException ioe) {
-        System.out.println(ioe);
+    public void run() {
+        while (thread != null) {
+            try {
+                System.out.println("Waiting for a client ...");
+                socket = server.accept();
+                System.out.println("Client accepted: " + socket);
+                open();
+                boolean done = false;
+                while (!done) {
+                    try {
+                        String line = streamIn.readUTF();
+                        System.out.println(line);
+                        done = line.equals(".bye");
+                    } catch (IOException ioe) {
+                        done = true;
+                    }
+                }
+                close();
+            } catch (IOException ie) {
+                System.out.println("Acceptance Error: " + ie);
+            }
+        }
+    }
+
+    public void start() {
+        if (thread == null) {
+            thread = new Thread(this);
+            thread.start();
+        }
+    }
+
+    public void stop() {
+        if (thread != null) {
+            thread.stop();
+            thread = null;
         }
     }
 
     public void open() throws IOException {
-        streamIn = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+        streamIn = new DataInputStream(new
+                BufferedInputStream(socket.getInputStream()));
     }
 
     public void close() throws IOException {
-        if (socket != null)    socket.close();
-        if (streamIn != null)  streamIn.close();
+        if (socket != null) socket.close();
+        if (streamIn != null) streamIn.close();
     }
 
     public static void main(String args[]) {
         ChatServer server = null;
-        if (args.length != 1)
-            System.out.println("[missing argument] Usage: java ChatServer port");
-        else
-            server = new ChatServer(Integer.parseInt(args[0]));
+        if (args.length != 1) System.out.println("Usage: java ChatServer port");
+        else server = new ChatServer(Integer.parseInt(args[0]));
     }
 }
