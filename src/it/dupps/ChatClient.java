@@ -6,16 +6,16 @@ package it.dupps;
 
 import java.applet.Applet;
 import java.awt.*;
-import java.io.DataInputStream;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class ChatClient extends Applet {
+public class ChatClient extends Applet implements KeyListener {
 
     private Socket socket = null;
-    private DataInputStream console = null;
     private DataOutputStream streamOut = null;
     private ChatClientThread client = null;
     private TextArea display = new TextArea();
@@ -23,7 +23,7 @@ public class ChatClient extends Applet {
     private Button send = new Button("Send"), connect = new Button("Connect"),
                    quit = new Button("Bye");
     private String serverName = "localhost";
-    private int serverPort = 4444;
+    private int serverPort = 5000;
 
     public void init() {
         Panel keys = new Panel();
@@ -41,8 +41,9 @@ public class ChatClient extends Applet {
         add("North", title);
         add("Center", display);
         add("South", south);
-        quit.disable();
-        send.disable();
+        quit.setEnabled(false);
+        send.setEnabled(false);
+        input.addKeyListener(this);
         getParameters();
     }
 
@@ -50,9 +51,9 @@ public class ChatClient extends Applet {
         if (e.target == quit) {
             input.setText(".bye");
             send();
-            quit.disable();
-            send.disable();
-            connect.enable();
+            quit.setEnabled(false);
+            send.setEnabled(false);
+            connect.setEnabled(true);
         } else if (e.target == connect) {
             connect(serverName, serverPort);
         } else if (e.target == send) {
@@ -68,9 +69,9 @@ public class ChatClient extends Applet {
             socket = new Socket(serverName, serverPort);
             println("Connected: " + socket);
             open();
-            send.enable();
-            connect.disable();
-            quit.enable();
+            send.setEnabled(true);
+            connect.setEnabled(false);
+            quit.setEnabled(true);
         } catch (UnknownHostException uhe) {
             println("Host unknown: " + uhe.getMessage());
         } catch (IOException ioe) {
@@ -91,7 +92,7 @@ public class ChatClient extends Applet {
 
     public void handle(String msg) {
         if (msg.equals(".bye")) {
-            println("Good bye. Press RETURN to exit ...");
+            println("Good bye.");
             close();
         } else println(msg);
     }
@@ -117,11 +118,25 @@ public class ChatClient extends Applet {
     }
 
     private void println(String msg) {
-        display.appendText(msg + "\n");
+        display.append(msg + "\n");
     }
 
     public void getParameters() {
         serverName = getParameter("host");
         serverPort = Integer.parseInt(getParameter("port"));
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) { }
+
+    @Override
+    public void keyPressed(KeyEvent e) { }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        int key = e.getKeyCode();
+        if (key == KeyEvent.VK_ENTER) {
+            send();
+        }
     }
 }

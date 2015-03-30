@@ -14,9 +14,9 @@ public class ChatClientThread extends Thread {
     private ChatClient client = null;
     private DataInputStream streamIn = null;
 
-    public ChatClientThread(ChatClient _client, Socket _socket) {
-        client = _client;
-        socket = _socket;
+    public ChatClientThread(ChatClient client, Socket socket) {
+        this.client = client;
+        this.socket = socket;
         open();
         start();
     }
