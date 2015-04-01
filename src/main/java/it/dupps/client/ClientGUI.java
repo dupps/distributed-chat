@@ -4,8 +4,11 @@ package it.dupps.client;
  * Created by dupps on 28.03.15.
  */
 
+import it.dupps.data.Message;
 import it.dupps.network.Client;
 import it.dupps.server.ClientHandler;
+import it.dupps.utils.HibernateUtils;
+import org.hibernate.*;
 
 import java.applet.Applet;
 import java.awt.*;
@@ -16,6 +19,8 @@ import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.List;
 
 public class ClientGUI extends Applet implements ClientHandler {
 
@@ -27,6 +32,7 @@ public class ClientGUI extends Applet implements ClientHandler {
                    quit = new Button("Bye");
     private String serverName;
     private int serverPort;
+    private static SessionFactory sessionFactory;
 
     public void init() {
         Panel keys = new Panel();
@@ -48,13 +54,10 @@ public class ClientGUI extends Applet implements ClientHandler {
         send.setEnabled(false);
 
         input.addKeyListener(new KeyListener() {
-            @Override
             public void keyTyped(KeyEvent e) { }
 
-            @Override
             public void keyPressed(KeyEvent e) { }
 
-            @Override
             public void keyReleased(KeyEvent e) {
                 int key = e.getKeyCode();
                 if (key == KeyEvent.VK_ENTER) {
@@ -63,14 +66,12 @@ public class ClientGUI extends Applet implements ClientHandler {
             }
         });
         send.addActionListener(new ActionListener() {
-            @Override
             public void actionPerformed(ActionEvent e) {
                 send();
                 input.requestFocus();
             }
         });
         quit.addActionListener(new ActionListener() {
-            @Override
             public void actionPerformed(ActionEvent e) {
                 input.setText(".bye");
                 send();
@@ -80,7 +81,6 @@ public class ClientGUI extends Applet implements ClientHandler {
             }
         });
         connect.addActionListener(new ActionListener() {
-            @Override
             public void actionPerformed(ActionEvent e) {
                 connect(serverName, serverPort);
             }
@@ -94,6 +94,7 @@ public class ClientGUI extends Applet implements ClientHandler {
         try {
             client = new Client(new Socket(serverName, serverPort), this);
             println("Connected.");
+            showHistory(5);
             send.setEnabled(true);
             connect.setEnabled(false);
             quit.setEnabled(true);
@@ -102,6 +103,41 @@ public class ClientGUI extends Applet implements ClientHandler {
         } catch (IOException ioe) {
             println("Unexpected exception: " + ioe.getMessage());
         }
+    }
+
+    private void showHistory(Integer amount) {
+        List<Message> messages = getHistoryMessages(amount);
+        Collections.reverse(messages);
+        for (Message message : messages) {
+            println(message.getMessageSource() +
+                    " (" + message.getMessageTimestamp().toLocaleString() + ") " +
+                    message.getMessageText());
+        }
+    }
+
+    private List<Message> getHistoryMessages(Integer amount) {
+        sessionFactory = HibernateUtils.INSTANCE.getSessionFactory();
+        Session session = sessionFactory.openSession();
+        Transaction tx = null;
+        List<Message> messages = null;
+
+        try {
+            Query query = session.createQuery(
+                    "FROM Message ORDER BY messageTimestamp DESC");
+            query.setFirstResult(0);
+            query.setMaxResults(amount);
+            messages = (List<Message>) query.list();
+            if (tx != null) tx.commit();
+
+        } catch (HibernateException he) {
+            if (tx != null) tx.rollback();
+            he.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+        return messages;
     }
 
     private void send() {
@@ -132,7 +168,6 @@ public class ClientGUI extends Applet implements ClientHandler {
         }
     }
 
-    @Override
     public void handle(Client source, String message) {
         if (message.equals(".bye")) {
             println("Good bye.");
@@ -140,7 +175,6 @@ public class ClientGUI extends Applet implements ClientHandler {
         } else println(message);
     }
 
-    @Override
     public void onExit(Client source) {
         close();
     }
