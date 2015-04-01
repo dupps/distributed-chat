@@ -4,20 +4,20 @@ package it.dupps.client;
  * Created by dupps on 28.03.15.
  */
 
+import it.dupps.network.Client;
+import it.dupps.server.ClientHandler;
+
 import java.applet.Applet;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class ClientGUI extends Applet implements KeyListener {
+public class ClientGUI extends Applet implements KeyListener, ClientHandler {
 
-    private Socket socket = null;
-    private DataOutputStream streamOut = null;
-    private ClientThread client = null;
+    private Client client = null;
     private TextArea display = new TextArea();
     private TextField input = new TextField();
     private Button send = new Button("Send"),
@@ -67,9 +67,8 @@ public class ClientGUI extends Applet implements KeyListener {
     public void connect(String serverName, int serverPort) {
         println("Establishing connection. Please wait ...");
         try {
-            socket = new Socket(serverName, serverPort);
-            println("Connected: " + socket);
-            open();
+            client = new Client(new Socket(serverName, serverPort), this);
+            println("Connected.");
             send.setEnabled(true);
             connect.setEnabled(false);
             quit.setEnabled(true);
@@ -81,41 +80,16 @@ public class ClientGUI extends Applet implements KeyListener {
     }
 
     private void send() {
-        try {
-            streamOut.writeUTF(input.getText());
-            streamOut.flush();
-            input.setText("");
-        } catch (IOException ioe) {
-            println("Sending error: " + ioe.getMessage());
-            close();
-        }
-    }
-
-    public void handle(String msg) {
-        if (msg.equals(".bye")) {
-            println("Good bye.");
-            close();
-        } else println(msg);
-    }
-
-    public void open() {
-        try {
-            streamOut = new DataOutputStream(socket.getOutputStream());
-            client = new ClientThread(this, socket);
-        } catch (IOException ioe) {
-            println("Error opening output stream: " + ioe);
-        }
+        client.send(input.getText());
+        input.setText("");
     }
 
     public void close() {
         try {
-            if (streamOut != null) streamOut.close();
-            if (socket != null) socket.close();
-        } catch (IOException ioe) {
-            println("Error closing ...");
+            client.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        client.close();
-        client.stop();
     }
 
     private void println(String msg) {
@@ -145,5 +119,18 @@ public class ClientGUI extends Applet implements KeyListener {
         if (key == KeyEvent.VK_ENTER) {
             send();
         }
+    }
+
+    @Override
+    public void handle(Client source, String message) {
+        if (message.equals(".bye")) {
+            println("Good bye.");
+            close();
+        } else println(message);
+    }
+
+    @Override
+    public void onExit(Client source) {
+        close();
     }
 }

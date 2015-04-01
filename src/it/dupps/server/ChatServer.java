@@ -4,16 +4,20 @@ package it.dupps.server;
  * Created by dupps on 28.03.15.
  */
 
+import it.dupps.network.Client;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
-public class ChatServer implements Runnable {
+public class ChatServer implements Runnable, ClientHandler {
 
-    private ServerThread clients[] = new ServerThread[50];
+    private Set<Client> clients = Collections.synchronizedSet(new HashSet<Client>());
     private ServerSocket server = null;
     private Thread thread = null;
-    private int clientCount = 0;
 
     public ChatServer(int port) {
         try {
@@ -52,54 +56,41 @@ public class ChatServer implements Runnable {
         }
     }
 
-    private int findClient(int ID) {
-        for (int i = 0; i < clientCount; i++)
-            if (clients[i].getID() == ID) return i;
-        return -1;
-    }
-
-    public synchronized void handle(int ID, String input) {
-        if (input.equals(".bye")) {
-            clients[findClient(ID)].send(".bye");
-            remove(ID);
-        } else for (int i = 0; i < clientCount; i++)
-            clients[i].send(ID + ": " + input);
-    }
-
-    public synchronized void remove(int ID) {
-        int pos = findClient(ID);
-        if (pos >= 0) {
-            ServerThread toTerminate = clients[pos];
-            System.out.println("Removing client thread " + ID + " at " + pos);
-            if (pos < clientCount - 1) for (int i = pos + 1; i < clientCount; i++)
-                clients[i - 1] = clients[i];
-            clientCount--;
+    public synchronized void handle(Client source, String message) {
+        System.out.println("Received message.");
+        if (message.equals(".bye")) {
+            source.send(".bye");
             try {
-                toTerminate.close();
-            } catch (IOException ioe) {
-                System.out.println("Error closing thread: " + ioe);
+                source.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            toTerminate.stop();
+            remove(source);
+        } else for (Client client : clients) {
+            client.send(message);
         }
     }
 
+    @Override
+    public void onExit(Client source) {
+        remove(source);
+    }
+
+    public synchronized void remove(Client client) {
+        clients.remove(client);
+    }
+
     private void addThread(Socket socket) {
-        if (clientCount < clients.length) {
-            System.out.println("Client accepted: " + socket);
-            clients[clientCount] = new ServerThread(this, socket);
-            try {
-                clients[clientCount].open();
-                clients[clientCount].start();
-                clientCount++;
-            } catch (IOException ioe) {
-                System.out.println("Error opening thread: " + ioe);
-            }
-        } else System.out.println("Client refused: maximum " + clients.length + " reached.");
+        try {
+            clients.add(new Client(socket, this));
+            System.out.println("Client accepted on " + socket.getPort());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String args[]) {
-        ChatServer server = null;
         if (args.length != 1) System.out.println("Usage: java ChatServer port");
-        else server = new ChatServer(Integer.parseInt(args[0]));
+        else new ChatServer(Integer.parseInt(args[0]));
     }
 }
