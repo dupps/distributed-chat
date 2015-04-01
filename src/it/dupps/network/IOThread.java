@@ -52,13 +52,12 @@ public class IOThread extends Thread {
 
     public void run() {
         System.out.println("Client Thread " + getID() + " running.");
-        while (true) {
+        while (!isInterrupted()) {
             try {
                 ioHandler.handle(this, streamIn.readUTF());
             } catch (IOException ioe) {
-                System.out.println(getID() + " ERROR reading: " + ioe.getMessage());
                 ioHandler.onExit(this);
-                stop();
+                break;
             }
         }
     }

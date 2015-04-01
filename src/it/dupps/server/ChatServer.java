@@ -72,6 +72,7 @@ public class ChatServer implements Runnable, ClientHandler {
 
     @Override
     public void onExit(Client source) {
+        System.out.println("Disconnected client " + source.getID());
         remove(source);
     }
 
