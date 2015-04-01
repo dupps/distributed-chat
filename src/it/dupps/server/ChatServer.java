@@ -57,7 +57,6 @@ public class ChatServer implements Runnable, ClientHandler {
     }
 
     public synchronized void handle(Client source, String message) {
-        System.out.println("Received message.");
         if (message.equals(".bye")) {
             source.send(".bye");
             try {

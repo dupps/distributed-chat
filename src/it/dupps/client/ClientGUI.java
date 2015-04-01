@@ -9,13 +9,15 @@ import it.dupps.server.ClientHandler;
 
 import java.applet.Applet;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class ClientGUI extends Applet implements KeyListener, ClientHandler {
+public class ClientGUI extends Applet implements ClientHandler {
 
     private Client client = null;
     private TextArea display = new TextArea();
@@ -44,24 +46,47 @@ public class ClientGUI extends Applet implements KeyListener, ClientHandler {
         add("South", south);
         quit.setEnabled(false);
         send.setEnabled(false);
-        input.addKeyListener(this);
-        getParameters();
-    }
 
-    public boolean action(Event e, Object o) {
-        if (e.target == quit) {
-            input.setText(".bye");
-            send();
-            quit.setEnabled(false);
-            send.setEnabled(false);
-            connect.setEnabled(true);
-        } else if (e.target == connect) {
-            connect(serverName, serverPort);
-        } else if (e.target == send) {
-            send();
-            input.requestFocus();
-        }
-        return true;
+        input.addKeyListener(new KeyListener() {
+            @Override
+            public void keyTyped(KeyEvent e) { }
+
+            @Override
+            public void keyPressed(KeyEvent e) { }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                int key = e.getKeyCode();
+                if (key == KeyEvent.VK_ENTER) {
+                    send();
+                }
+            }
+        });
+        send.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                send();
+                input.requestFocus();
+            }
+        });
+        quit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                input.setText(".bye");
+                send();
+                quit.setEnabled(false);
+                send.setEnabled(false);
+                connect.setEnabled(true);
+            }
+        });
+        connect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                connect(serverName, serverPort);
+            }
+        });
+
+        getParameters();
     }
 
     public void connect(String serverName, int serverPort) {
@@ -104,20 +129,6 @@ public class ClientGUI extends Applet implements KeyListener, ClientHandler {
             serverName = "localhost";
             serverPort = 5000;
             println("Use default configuration " + serverName + ":" + serverPort);
-        }
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) { }
-
-    @Override
-    public void keyPressed(KeyEvent e) { }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        int key = e.getKeyCode();
-        if (key == KeyEvent.VK_ENTER) {
-            send();
         }
     }
 

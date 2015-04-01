@@ -46,7 +46,11 @@ public class Client implements IOHandler {
         handler.onExit(this);
     }
 
-    public void send(String msg) {
-        this.thread.send(msg);
+    public void send(String message) {
+        this.thread.send(message);
+    }
+
+    public int getID() {
+        return thread.getID();
     }
 }

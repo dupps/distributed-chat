@@ -11,7 +11,6 @@ public class IOThread extends Thread {
 
     private final IOHandler ioHandler;
     private final Socket socket;
-    public final int ID;
     private final DataInputStream streamIn;
     private final DataOutputStream streamOut;
 
@@ -19,7 +18,6 @@ public class IOThread extends Thread {
         super();
         this.ioHandler = ioHandler;
         this.socket = socket;
-        ID = socket.getPort();
         streamIn = new DataInputStream(new
                 BufferedInputStream(socket.getInputStream()));
         streamOut = new DataOutputStream(new
@@ -30,11 +28,15 @@ public class IOThread extends Thread {
     public boolean equals(Object other) {
         if (!(other instanceof IOThread)) return false;
         IOThread otherThread = (IOThread) other;
-        return ID == otherThread.ID;
+        return getID() == otherThread.getID();
+    }
+
+    public int getID() {
+        return socket.getPort();
     }
 
     public int hashCode() {
-        return ID;
+        return getID();
     }
 
     public void send(String msg) {
@@ -42,19 +44,19 @@ public class IOThread extends Thread {
             streamOut.writeUTF(msg);
             streamOut.flush();
         } catch (IOException ioe) {
-            System.out.println(ID + " ERROR sending: " + ioe.getMessage());
+            System.out.println(getID() + " ERROR sending: " + ioe.getMessage());
             ioHandler.onExit(this);
             stop();
         }
     }
 
     public void run() {
-        System.out.println("Server Thread " + ID + " running.");
+        System.out.println("Client Thread " + getID() + " running.");
         while (true) {
             try {
                 ioHandler.handle(this, streamIn.readUTF());
             } catch (IOException ioe) {
-                System.out.println(ID + " ERROR reading: " + ioe.getMessage());
+                System.out.println(getID() + " ERROR reading: " + ioe.getMessage());
                 ioHandler.onExit(this);
                 stop();
             }
