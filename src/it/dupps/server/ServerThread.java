@@ -1,4 +1,4 @@
-package it.dupps;
+package it.dupps.server;
 
 /**
  * Created by dupps on 28.03.15.
@@ -7,7 +7,7 @@ package it.dupps;
 import java.io.*;
 import java.net.Socket;
 
-public class ChatServerThread extends Thread {
+public class ServerThread extends Thread {
 
     private ChatServer server = null;
     private Socket socket = null;
@@ -15,7 +15,7 @@ public class ChatServerThread extends Thread {
     private DataInputStream streamIn = null;
     private DataOutputStream streamOut = null;
 
-    public ChatServerThread(ChatServer server, Socket socket) {
+    public ServerThread(ChatServer server, Socket socket) {
         super();
         this.server = server;
         this.socket = socket;

@@ -1,4 +1,4 @@
-package it.dupps;
+package it.dupps.client;
 
 /**
  * Created by dupps on 28.03.15.
@@ -8,13 +8,13 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 
-public class ChatClientThread extends Thread {
+public class ClientThread extends Thread {
 
     private Socket socket = null;
-    private ChatClient client = null;
+    private ClientGUI client = null;
     private DataInputStream streamIn = null;
 
-    public ChatClientThread(ChatClient client, Socket socket) {
+    public ClientThread(ClientGUI client, Socket socket) {
         this.client = client;
         this.socket = socket;
         open();

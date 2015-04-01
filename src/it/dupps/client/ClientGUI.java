@@ -1,4 +1,4 @@
-package it.dupps;
+package it.dupps.client;
 
 /**
  * Created by dupps on 28.03.15.
@@ -13,17 +13,18 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-public class ChatClient extends Applet implements KeyListener {
+public class ClientGUI extends Applet implements KeyListener {
 
     private Socket socket = null;
     private DataOutputStream streamOut = null;
-    private ChatClientThread client = null;
+    private ClientThread client = null;
     private TextArea display = new TextArea();
     private TextField input = new TextField();
-    private Button send = new Button("Send"), connect = new Button("Connect"),
+    private Button send = new Button("Send"),
+                   connect = new Button("Connect"),
                    quit = new Button("Bye");
-    private String serverName = "localhost";
-    private int serverPort = 5000;
+    private String serverName;
+    private int serverPort;
 
     public void init() {
         Panel keys = new Panel();
@@ -100,7 +101,7 @@ public class ChatClient extends Applet implements KeyListener {
     public void open() {
         try {
             streamOut = new DataOutputStream(socket.getOutputStream());
-            client = new ChatClientThread(this, socket);
+            client = new ClientThread(this, socket);
         } catch (IOException ioe) {
             println("Error opening output stream: " + ioe);
         }
@@ -122,8 +123,14 @@ public class ChatClient extends Applet implements KeyListener {
     }
 
     public void getParameters() {
-        serverName = getParameter("host");
-        serverPort = Integer.parseInt(getParameter("port"));
+        try {
+            serverName = getParameter("host");
+            serverPort = Integer.parseInt(getParameter("port"));
+        } catch (Exception e) {
+            serverName = "localhost";
+            serverPort = 5000;
+            println("Use default configuration " + serverName + ":" + serverPort);
+        }
     }
 
     @Override
