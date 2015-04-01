@@ -4,7 +4,13 @@ package it.dupps.server;
  * Created by dupps on 28.03.15.
  */
 
+import it.dupps.data.Message;
 import it.dupps.network.Client;
+import it.dupps.utils.HibernateUtils;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -18,6 +24,7 @@ public class ChatServer implements Runnable, ClientHandler {
     private Set<Client> clients = Collections.synchronizedSet(new HashSet<Client>());
     private ServerSocket server = null;
     private Thread thread = null;
+    private static SessionFactory sessionFactory;
 
     public ChatServer(int port) {
         try {
@@ -65,8 +72,12 @@ public class ChatServer implements Runnable, ClientHandler {
                 e.printStackTrace();
             }
             remove(source);
-        } else for (Client client : clients) {
-            client.send(message);
+
+        } else {
+            persistMessage(message, source.getID());
+            for (Client client : clients) {
+                client.send(message);
+            }
         }
     }
 
@@ -90,6 +101,32 @@ public class ChatServer implements Runnable, ClientHandler {
 
     public static void main(String args[]) {
         if (args.length != 1) System.out.println("Usage: java ChatServer port");
-        else new ChatServer(Integer.parseInt(args[0]));
+        else {
+            new ChatServer(Integer.parseInt(args[0]));
+            HibernateUtils.INSTANCE.getSessionFactory();
+        }
+    }
+
+    private int persistMessage(String message, Integer clientID) {
+        sessionFactory = HibernateUtils.INSTANCE.getSessionFactory();
+        Session session = sessionFactory.openSession();
+        Transaction tx = null;
+        Integer messageId = null;
+
+        try {
+            tx = session.beginTransaction();
+            Message messageObject = new Message();
+            messageObject.setMessageText(message);
+            messageObject.setMessageSource(clientID.toString());
+            messageId = (Integer) session.save(messageObject);
+            tx.commit();
+
+        } catch (HibernateException e) {
+            if (tx!=null) tx.rollback();
+            e.printStackTrace();
+        } finally {
+            session.close();
+        }
+        return messageId;
     }
 }
