@@ -36,12 +36,10 @@ public class Client implements IOHandler {
         return thread != null ? thread.hashCode() : 0;
     }
 
-    @Override
     public void handle(IOThread source, String message) {
         handler.handle(this, message);
     }
 
-    @Override
     public void onExit(IOThread source) {
         handler.onExit(this);
     }

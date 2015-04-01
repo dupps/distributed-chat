@@ -46,7 +46,6 @@ public class IOThread extends Thread {
         } catch (IOException ioe) {
             System.out.println(getID() + " ERROR sending: " + ioe.getMessage());
             ioHandler.onExit(this);
-            stop();
         }
     }
 

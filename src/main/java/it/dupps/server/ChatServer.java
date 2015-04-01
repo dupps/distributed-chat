@@ -51,7 +51,7 @@ public class ChatServer implements Runnable, ClientHandler {
 
     public void stop() {
         if (thread != null) {
-            thread.stop();
+            thread.interrupt();
             thread = null;
         }
     }
@@ -70,7 +70,6 @@ public class ChatServer implements Runnable, ClientHandler {
         }
     }
 
-    @Override
     public void onExit(Client source) {
         System.out.println("Disconnected client " + source.getID());
         remove(source);
