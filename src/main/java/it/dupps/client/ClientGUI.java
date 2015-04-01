@@ -19,7 +19,8 @@ import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Collections;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class ClientGUI extends Applet implements ClientHandler {
@@ -107,11 +108,13 @@ public class ClientGUI extends Applet implements ClientHandler {
 
     private void showHistory(Integer amount) {
         List<Message> messages = getHistoryMessages(amount);
-        Collections.reverse(messages);
-        for (Message message : messages) {
-            println(message.getMessageSource() +
-                    " (" + message.getMessageTimestamp().toLocaleString() + ") " +
-                    message.getMessageText());
+        for (int i = (messages.size() - 1); i >= 0; i--) {
+            Date date = messages.get(i).getMessageTimestamp();
+            String formattedDate = new SimpleDateFormat("HH:mm:ss").format(date);
+
+            println(messages.get(i).getMessageSource() +
+                    " (" + formattedDate + ") " +
+                    messages.get(i).getMessageText());
         }
     }
 
