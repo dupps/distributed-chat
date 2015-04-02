@@ -31,9 +31,11 @@ public class ClientGUI extends Applet implements ClientHandler {
     private Button send = new Button("Send"),
                    connect = new Button("Connect"),
                    quit = new Button("Bye");
+    private Label title;
     private String serverName;
     private int serverPort;
     private static SessionFactory sessionFactory;
+    private String username = "";
 
     public void init() {
         Panel keys = new Panel();
@@ -45,7 +47,7 @@ public class ClientGUI extends Applet implements ClientHandler {
         south.add("West", keys);
         south.add("Center", input);
         south.add("East", send);
-        Label title = new Label("Simple Chat Client Applet", Label.CENTER);
+        title = new Label("Simple Chat Client Applet", Label.CENTER);
         title.setFont(new Font("Helvetica", Font.BOLD, 14));
         setLayout(new BorderLayout());
         add("North", title);
@@ -53,41 +55,70 @@ public class ClientGUI extends Applet implements ClientHandler {
         add("South", south);
         quit.setEnabled(false);
         send.setEnabled(false);
+        connect.setEnabled(false);
 
-        input.addKeyListener(new KeyListener() {
-            public void keyTyped(KeyEvent e) { }
-
-            public void keyPressed(KeyEvent e) { }
-
-            public void keyReleased(KeyEvent e) {
-                int key = e.getKeyCode();
-                if (key == KeyEvent.VK_ENTER) {
-                    send();
+        if(loginWasSuccessful()) {
+            getParameters();
+            title.setText("Welcome " + username + "!");
+            connect(serverName, serverPort);
+            connect.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    display.setText("");
+                    connect(serverName, serverPort);
                 }
-            }
-        });
-        send.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                send();
-                input.requestFocus();
-            }
-        });
-        quit.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                input.setText(".bye");
-                send();
-                quit.setEnabled(false);
-                send.setEnabled(false);
-                connect.setEnabled(true);
-            }
-        });
-        connect.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                connect(serverName, serverPort);
-            }
-        });
+            });
+            input.addKeyListener(new KeyListener() {
+                public void keyTyped(KeyEvent e) {
+                }
 
-        getParameters();
+                public void keyPressed(KeyEvent e) {
+                }
+
+                public void keyReleased(KeyEvent e) {
+                    int key = e.getKeyCode();
+                    if (key == KeyEvent.VK_ENTER) {
+                        send();
+                    }
+                }
+            });
+            send.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    send();
+                    input.requestFocus();
+                }
+            });
+            quit.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    input.setText(".bye");
+                    send();
+                    quit.setEnabled(false);
+                    send.setEnabled(false);
+                    connect.setEnabled(true);
+                }
+            });
+
+        } else {
+            display.setText("Login failed.");
+        }
+    }
+
+    private boolean loginWasSuccessful() {
+        boolean isValidUser = false;
+        Login login = new Login (new Frame(""));
+        requestFocus();
+        if (login.isLoginPerformed()) {
+            String user = login.username.getText().trim();
+            String pass = login.password.getText().trim();
+            isValidUser = validateUser(user, pass);
+            if (isValidUser) username = user;
+        }
+        login.dispose();
+        return isValidUser;
+    }
+
+    private boolean validateUser(String usr, String pwd) {
+        // TODO: database access and real validation
+        return (usr.equals("test") && pwd.equals("sicherheit"));
     }
 
     public void connect(String serverName, int serverPort) {

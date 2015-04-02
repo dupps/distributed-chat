@@ -25,11 +25,8 @@ public enum HibernateUtils {
     }
 
     public SessionFactory getSessionFactory() {
-        SessionFactory factory;
-        if (sessionFactory == null)
-            factory = initialiseSessionFactory();
-        else
-            factory = sessionFactory;
+        SessionFactory factory = (sessionFactory == null) ?
+                initialiseSessionFactory() : sessionFactory;
         return factory;
     }
 }
