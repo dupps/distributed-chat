@@ -10,13 +10,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class Login extends Dialog {
+public class LoginGUI extends Dialog {
 
     private boolean loginPerformed = false;
     private Button login, cancel;
     protected TextField username, password;
 
-    public Login(Frame frame){
+    public LoginGUI(Frame frame){
         super(frame, "Please Login", true);
         setLayout(new FlowLayout());
         username = new TextField(15);

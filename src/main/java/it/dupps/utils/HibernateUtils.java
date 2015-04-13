@@ -16,6 +16,7 @@ public enum HibernateUtils {
         if (sessionFactory == null) {
             Configuration config = new Configuration();
             config.addAnnotatedClass(it.dupps.data.Message.class);
+            config.addAnnotatedClass(it.dupps.data.User.class);
             config.configure();
             StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
                     .applySettings(config.getProperties());

@@ -5,10 +5,9 @@ package it.dupps.client;
  */
 
 import it.dupps.data.Message;
+import it.dupps.data.User;
 import it.dupps.network.Client;
 import it.dupps.server.ClientHandler;
-import it.dupps.utils.HibernateUtils;
-import org.hibernate.*;
 
 import java.applet.Applet;
 import java.awt.*;
@@ -34,8 +33,8 @@ public class ClientGUI extends Applet implements ClientHandler {
     private Label title;
     private String serverName;
     private int serverPort;
-    private static SessionFactory sessionFactory;
-    private String username = "";
+    private User user = null;
+    private ClientPersistance persistance;
 
     public void init() {
         Panel keys = new Panel();
@@ -56,10 +55,11 @@ public class ClientGUI extends Applet implements ClientHandler {
         quit.setEnabled(false);
         send.setEnabled(false);
         connect.setEnabled(false);
+        persistance = new ClientPersistance();
 
         if(loginWasSuccessful()) {
             getParameters();
-            title.setText("Welcome " + username + "!");
+            title.setText("Welcome " + user.getEmail() + "!");
             connect(serverName, serverPort);
             connect.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
@@ -103,22 +103,16 @@ public class ClientGUI extends Applet implements ClientHandler {
     }
 
     private boolean loginWasSuccessful() {
-        boolean isValidUser = false;
-        Login login = new Login (new Frame(""));
+        LoginGUI loginGUI = new LoginGUI(new Frame(""));
         requestFocus();
-        if (login.isLoginPerformed()) {
-            String user = login.username.getText().trim();
-            String pass = login.password.getText().trim();
-            isValidUser = validateUser(user, pass);
-            if (isValidUser) username = user;
+        if (loginGUI.isLoginPerformed()) {
+            String username = loginGUI.username.getText().trim();
+            String password = loginGUI.password.getText().trim();
+            this.user = persistance.getUser(username, password);
+            if (this.user != null) return true;
         }
-        login.dispose();
-        return isValidUser;
-    }
-
-    private boolean validateUser(String usr, String pwd) {
-        // TODO: database access and real validation
-        return (usr.equals("test") && pwd.equals("sicherheit"));
+        loginGUI.dispose();
+        return false;
     }
 
     public void connect(String serverName, int serverPort) {
@@ -138,7 +132,7 @@ public class ClientGUI extends Applet implements ClientHandler {
     }
 
     private void showHistory(Integer amount) {
-        List<Message> messages = getHistoryMessages(amount);
+        List<Message> messages = persistance.getHistoryMessages(amount);
         for (int i = (messages.size() - 1); i >= 0; i--) {
             Date date = messages.get(i).getMessageTimestamp();
             String formattedDate = new SimpleDateFormat("HH:mm:ss").format(date);
@@ -147,31 +141,6 @@ public class ClientGUI extends Applet implements ClientHandler {
                     " (" + formattedDate + ") " +
                     messages.get(i).getMessageText());
         }
-    }
-
-    private List<Message> getHistoryMessages(Integer amount) {
-        sessionFactory = HibernateUtils.INSTANCE.getSessionFactory();
-        Session session = sessionFactory.openSession();
-        Transaction tx = null;
-        List<Message> messages = null;
-
-        try {
-            Query query = session.createQuery(
-                    "FROM Message ORDER BY messageTimestamp DESC");
-            query.setFirstResult(0);
-            query.setMaxResults(amount);
-            messages = (List<Message>) query.list();
-            if (tx != null) tx.commit();
-
-        } catch (HibernateException he) {
-            if (tx != null) tx.rollback();
-            he.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
-        return messages;
     }
 
     private void send() {
