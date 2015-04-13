@@ -4,9 +4,11 @@ package it.dupps.server;
  * Created by dupps on 28.03.15.
  */
 
-import it.dupps.data.Message;
+import com.google.gson.Gson;
+import it.dupps.communication.Communication;
 import it.dupps.network.Client;
-import it.dupps.utils.HibernateUtils;
+import it.dupps.persistance.data.Message;
+import it.dupps.persistance.utils.HibernateUtils;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -63,8 +65,38 @@ public class ChatServer implements Runnable, ClientHandler {
         }
     }
 
-    public synchronized void handle(Client source, String message) {
-        if (message.equals(".bye")) {
+    public synchronized void handle(Client source, String json) {
+        Communication com = null;
+        try {
+            com = new Gson().fromJson(json, Communication.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (com != null) {
+            switch (com.getType()) {
+                case AUTH:
+                    handleAuth(source, com);
+                    break;
+
+                case MESSAGE:
+                    handleMessage(source, com);
+                    break;
+
+                case HISTORY:
+                    handleHistory(source, com);
+                    break;
+            }
+        } else {
+            System.out.println("Error while parsing JSON: " + json);
+        }
+    }
+
+    private void handleAuth(Client source, Communication com) {
+        // TODO: implement method
+    }
+
+    private void handleMessage(Client source, Communication com) {
+        if (com.getPayload().equals(".bye")) {
             source.send(".bye");
             try {
                 source.close();
@@ -74,11 +106,18 @@ public class ChatServer implements Runnable, ClientHandler {
             remove(source);
 
         } else {
-            persistMessage(message, source.getID());
+            persistMessage(com.getPayload(), source.getID());
             for (Client client : clients) {
-                client.send(message);
+                // TODO: mapping of username and socket port
+                String message = com.getUsername() + ": " + com.getPayload();
+                String json = new Gson().toJson(message);
+                client.send(json);
             }
         }
+    }
+
+    private void handleHistory(Client source, Communication com) {
+        // TODO: implement method
     }
 
     public void onExit(Client source) {

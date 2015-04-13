@@ -1,4 +1,4 @@
-package it.dupps.data;
+package it.dupps.persistance.data;
 
 import lombok.Data;
 

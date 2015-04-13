@@ -1,4 +1,4 @@
-package it.dupps.utils;
+package it.dupps.persistance.utils;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
@@ -15,8 +15,8 @@ public enum HibernateUtils {
     private synchronized SessionFactory initialiseSessionFactory() {
         if (sessionFactory == null) {
             Configuration config = new Configuration();
-            config.addAnnotatedClass(it.dupps.data.Message.class);
-            config.addAnnotatedClass(it.dupps.data.User.class);
+            config.addAnnotatedClass(it.dupps.persistance.data.Message.class);
+            config.addAnnotatedClass(it.dupps.persistance.data.User.class);
             config.configure();
             StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder()
                     .applySettings(config.getProperties());
