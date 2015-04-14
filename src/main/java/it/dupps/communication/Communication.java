@@ -26,15 +26,4 @@ public class Communication {
 
     private String payload;
 
-    @Override
-    public String toString() {
-        return "Communication{" +
-                "type=" + type +
-                ", username='" + username + '\'' +
-                ", password='" + password + '\'' +
-                ", token=" + token +
-                ", amount=" + amount +
-                ", payload='" + payload + '\'' +
-                '}';
-    }
 }

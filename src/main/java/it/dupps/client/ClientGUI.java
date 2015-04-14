@@ -5,9 +5,11 @@ package it.dupps.client;
  */
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import it.dupps.communication.ComType;
 import it.dupps.communication.Communication;
 import it.dupps.network.Client;
+import it.dupps.persistance.data.Message;
 import it.dupps.server.ClientHandler;
 
 import java.applet.Applet;
@@ -17,8 +19,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 public class ClientGUI extends Applet implements ClientHandler {
@@ -56,9 +63,108 @@ public class ClientGUI extends Applet implements ClientHandler {
 
         getParameters();
         connect(serverName, serverPort);
+        performLogin();
+    }
 
-        if(loginWasSuccessful()) {
-            title.setText("Welcome " + token + "!");
+    private void performLogin() {
+        LoginGUI loginGUI = new LoginGUI(new Frame(""));
+        requestFocus();
+        if (loginGUI.isLoginPerformed()) {
+            String username = loginGUI.username.getText().trim();
+            String password = loginGUI.password.getText().trim();
+            Communication com = new Communication(ComType.AUTH);
+            com.setUsername(username);
+            com.setPassword(password);
+            String json = new Gson().toJson(com);
+            client.send(json);
+        }
+        loginGUI.dispose();
+    }
+
+    public void connect(String serverName, int serverPort) {
+        println("Establishing connection. Please wait ...");
+        try {
+            client = new Client(new Socket(serverName, serverPort), this);
+            println("Connected.");
+            send.setEnabled(true);
+            connect.setEnabled(false);
+            quit.setEnabled(true);
+        } catch (UnknownHostException uhe) {
+            println("Host unknown: " + uhe.getMessage());
+        } catch (IOException ioe) {
+            println("Unexpected exception: " + ioe.getMessage());
+        }
+    }
+
+    private void showHistory(Integer amount) {
+        Communication com = new Communication(ComType.HISTORY);
+        com.setAmount(amount);
+        String json = new Gson().toJson(com);
+        client.send(json);
+    }
+
+    private void send() {
+        Communication com = new Communication(ComType.MESSAGE);
+        com.setPayload(input.getText());
+        String json = new Gson().toJson(com);
+        client.send(json);
+        input.setText("");
+    }
+
+    public void close() {
+        try {
+            client.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void println(String msg) {
+        display.append(msg + "\n");
+    }
+
+    public void getParameters() {
+        try {
+            serverName = getParameter("host");
+            serverPort = Integer.parseInt(getParameter("port"));
+        } catch (Exception e) {
+            serverName = "localhost";
+            serverPort = 5000;
+            println("Use default configuration " + serverName + ":" + serverPort);
+        }
+    }
+
+    public void handle(Client source, String json) {
+        Communication com = null;
+        try {
+            com = new Gson().fromJson(json, Communication.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (com != null) {
+            switch (com.getType()) {
+                case AUTH:
+                    handleAuth(com);
+                    break;
+
+                case MESSAGE:
+                    handleMessage(com);
+                    break;
+
+                case HISTORY:
+                    handleHistory(com);
+                    break;
+            }
+        } else {
+            System.out.println("Error while parsing JSON: " + json);
+        }
+    }
+
+    private void handleAuth(Communication com) {
+        if(com.getToken() != null) {
+            this.token = com.getToken();
+            showHistory(5);
+            title.setText("Welcome " + this.token + "!");
             connect.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     display.setText("");
@@ -96,97 +202,24 @@ public class ClientGUI extends Applet implements ClientHandler {
         }
     }
 
-    private boolean loginWasSuccessful() {
-        LoginGUI loginGUI = new LoginGUI(new Frame(""));
-        requestFocus();
-        if (loginGUI.isLoginPerformed()) {
-            String username = loginGUI.username.getText().trim();
-            String password = loginGUI.password.getText().trim();
-            Communication com = new Communication(ComType.AUTH);
-            com.setUsername(username);
-            com.setPassword(password);
-            String json = new Gson().toJson(com);
-            client.send(json);
-
-            // TODO: get response + convert String to UUID
-
-//            if (this.token != null) return true;
-        }
-        loginGUI.dispose();
-//        return false;
-        return true;
-    }
-
-    public void connect(String serverName, int serverPort) {
-        println("Establishing connection. Please wait ...");
-        try {
-            client = new Client(new Socket(serverName, serverPort), this);
-            println("Connected.");
-            showHistory(5);
-            send.setEnabled(true);
-            connect.setEnabled(false);
-            quit.setEnabled(true);
-        } catch (UnknownHostException uhe) {
-            println("Host unknown: " + uhe.getMessage());
-        } catch (IOException ioe) {
-            println("Unexpected exception: " + ioe.getMessage());
-        }
-    }
-
-    private void showHistory(Integer amount) {
-        Communication com = new Communication(ComType.HISTORY);
-        com.setAmount(amount);
-        String json = new Gson().toJson(com);
-        client.send(json);
-
-        // TODO: get response + convert String to List<Message>
-
-//        for (int i = (messages.size() - 1); i >= 0; i--) {
-//            Date date = messages.get(i).getMessageTimestamp();
-//            String formattedDate = new SimpleDateFormat("HH:mm:ss").format(date);
-//
-//            println(messages.get(i).getMessageSource() +
-//                    " (" + formattedDate + ") " +
-//                    messages.get(i).getMessageText());
-//        }
-    }
-
-    private void send() {
-        Communication com = new Communication(ComType.MESSAGE);
-        com.setPayload(input.getText());
-        String json = new Gson().toJson(com);
-        client.send(json);
-        input.setText("");
-    }
-
-    public void close() {
-        try {
-            client.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void println(String msg) {
-        display.append(msg + "\n");
-    }
-
-    public void getParameters() {
-        try {
-            serverName = getParameter("host");
-            serverPort = Integer.parseInt(getParameter("port"));
-        } catch (Exception e) {
-            serverName = "localhost";
-            serverPort = 5000;
-            println("Use default configuration " + serverName + ":" + serverPort);
-        }
-    }
-
-    public void handle(Client source, String message) {
-        if (message.equals(".bye")) {
+    private void handleMessage(Communication com) {
+        if (com.getPayload().equals(".bye")) {
             println("Good bye.");
             close();
-        } else println(message);
+        } else println(com.getPayload());
+    }
+
+    private void handleHistory(Communication com) {
+        Type listType = new TypeToken<ArrayList<Message>>() {}.getType();
+        List<Message> messages = new Gson().fromJson(com.getPayload(), listType);
+        for (int i = (messages.size() - 1); i >= 0; i--) {
+            Date date = messages.get(i).getMessageTimestamp();
+            String formattedDate = new SimpleDateFormat("HH:mm:ss").format(date);
+
+            println(messages.get(i).getMessageSource() +
+                    " (" + formattedDate + ") " +
+                    messages.get(i).getMessageText());
+        }
     }
 
     public void onExit(Client source) {

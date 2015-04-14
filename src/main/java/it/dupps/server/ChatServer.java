@@ -5,28 +5,25 @@ package it.dupps.server;
  */
 
 import com.google.gson.Gson;
+import it.dupps.communication.ComType;
 import it.dupps.communication.Communication;
 import it.dupps.network.Client;
+import it.dupps.persistance.Authenticator;
+import it.dupps.persistance.MessageFacade;
 import it.dupps.persistance.data.Message;
 import it.dupps.persistance.utils.HibernateUtils;
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class ChatServer implements Runnable, ClientHandler {
 
     private Set<Client> clients = Collections.synchronizedSet(new HashSet<Client>());
     private ServerSocket server = null;
     private Thread thread = null;
-    private static SessionFactory sessionFactory;
+    private MessageFacade messageFacade = new MessageFacade();
 
     public ChatServer(int port) {
         try {
@@ -91,13 +88,20 @@ public class ChatServer implements Runnable, ClientHandler {
         }
     }
 
-    private void handleAuth(Client source, Communication com) {
-        // TODO: implement method
+    private void handleAuth(Client client, Communication com) {
+        UUID token = new Authenticator().authenticate(com.getUsername(), com.getPassword());
+        Communication comObj = new Communication(ComType.AUTH);
+        comObj.setToken(token);
+        String json = new Gson().toJson(comObj);
+        client.send(json);
     }
 
     private void handleMessage(Client source, Communication com) {
         if (com.getPayload().equals(".bye")) {
-            source.send(".bye");
+            Communication comObj = new Communication(ComType.MESSAGE);
+            comObj.setPayload(com.getPayload());
+            String json = new Gson().toJson(comObj);
+            source.send(json);
             try {
                 source.close();
             } catch (IOException e) {
@@ -106,18 +110,26 @@ public class ChatServer implements Runnable, ClientHandler {
             remove(source);
 
         } else {
-            persistMessage(com.getPayload(), source.getID());
+            messageFacade.persistMessage(com.getPayload(), source.getID());
             for (Client client : clients) {
+                Communication comObj = new Communication(ComType.MESSAGE);
+                comObj.setUsername(Integer.toString(source.getID()));
                 // TODO: mapping of username and socket port
-                String message = com.getUsername() + ": " + com.getPayload();
-                String json = new Gson().toJson(message);
+                comObj.setPayload(com.getPayload());
+                String json = new Gson().toJson(comObj);
                 client.send(json);
             }
         }
     }
 
-    private void handleHistory(Client source, Communication com) {
-        // TODO: implement method
+    private void handleHistory(Client client, Communication com) {
+        Gson gson = new Gson();
+        List<Message> messages = messageFacade.getHistoryMessages(com.getAmount());
+        String msgJson = gson.toJson(messages);
+        Communication comObj = new Communication(ComType.HISTORY);
+        comObj.setPayload(msgJson);
+        String comJson = gson.toJson(comObj);
+        client.send(comJson);
     }
 
     public void onExit(Client source) {
@@ -146,26 +158,4 @@ public class ChatServer implements Runnable, ClientHandler {
         }
     }
 
-    private int persistMessage(String message, Integer clientID) {
-        sessionFactory = HibernateUtils.INSTANCE.getSessionFactory();
-        Session session = sessionFactory.openSession();
-        Transaction tx = null;
-        Integer messageId = null;
-
-        try {
-            tx = session.beginTransaction();
-            Message messageObject = new Message();
-            messageObject.setMessageText(message);
-            messageObject.setMessageSource(clientID.toString());
-            messageId = (Integer) session.save(messageObject);
-            tx.commit();
-
-        } catch (HibernateException e) {
-            if (tx!=null) tx.rollback();
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
-        return messageId;
-    }
 }
