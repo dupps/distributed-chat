@@ -164,7 +164,7 @@ public class ClientGUI extends Applet implements ClientHandler {
         if(com.getToken() != null) {
             this.token = com.getToken();
             showHistory(5);
-            title.setText("Welcome " + this.token + "!");
+            //title.setText("Welcome " + this.token + "!");
             connect.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     display.setText("");
@@ -206,7 +206,7 @@ public class ClientGUI extends Applet implements ClientHandler {
         if (com.getPayload().equals(".bye")) {
             println("Good bye.");
             close();
-        } else println(com.getPayload());
+        } else println(com.getUsername() + ": " + com.getPayload());
     }
 
     private void handleHistory(Communication com) {

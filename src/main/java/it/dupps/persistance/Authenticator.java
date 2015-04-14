@@ -37,7 +37,7 @@ public class Authenticator {
         } finally {
             session.close();
         }
-        if(users != null && users.size() > 0)
+        if(users != null && users.size() == 1 && users.get(0) != null)
             return UUID.randomUUID();
 
         return null;

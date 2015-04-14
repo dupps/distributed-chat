@@ -21,6 +21,7 @@ import java.util.*;
 public class ChatServer implements Runnable, ClientHandler {
 
     private Set<Client> clients = Collections.synchronizedSet(new HashSet<Client>());
+    private Map<UUID, Client> authenticatedClients = new HashMap<UUID, Client>();
     private ServerSocket server = null;
     private Thread thread = null;
     private MessageFacade messageFacade = new MessageFacade();
@@ -89,11 +90,18 @@ public class ChatServer implements Runnable, ClientHandler {
     }
 
     private void handleAuth(Client client, Communication com) {
-        UUID token = new Authenticator().authenticate(com.getUsername(), com.getPassword());
-        Communication comObj = new Communication(ComType.AUTH);
-        comObj.setToken(token);
-        String json = new Gson().toJson(comObj);
-        client.send(json);
+        UUID token;
+        token = new Authenticator().authenticate(com.getUsername(), com.getPassword());
+        if (token != null) {
+            authenticatedClients.put(token, client);
+            Communication comObj = new Communication(ComType.AUTH);
+            comObj.setToken(token);
+            String json = new Gson().toJson(comObj);
+            client.send(json);
+
+        } else {
+            System.out.println("Authentication failed for user " + com.getUsername());
+        }
     }
 
     private void handleMessage(Client source, Communication com) {
@@ -111,7 +119,7 @@ public class ChatServer implements Runnable, ClientHandler {
 
         } else {
             messageFacade.persistMessage(com.getPayload(), source.getID());
-            for (Client client : clients) {
+            for (Client client : authenticatedClients.values()) {
                 Communication comObj = new Communication(ComType.MESSAGE);
                 comObj.setUsername(Integer.toString(source.getID()));
                 // TODO: mapping of username and socket port
@@ -139,6 +147,7 @@ public class ChatServer implements Runnable, ClientHandler {
 
     public synchronized void remove(Client client) {
         clients.remove(client);
+        authenticatedClients.values().remove(client);
     }
 
     private void addThread(Socket socket) {
