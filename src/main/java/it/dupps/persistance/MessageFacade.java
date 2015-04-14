@@ -13,7 +13,7 @@ public class MessageFacade {
 
     private static SessionFactory sessionFactory;
 
-    public int persistMessage(String message, Integer clientID) {
+    public int persistMessage(String text, String source) {
         sessionFactory = HibernateUtils.INSTANCE.getSessionFactory();
         Session session = sessionFactory.openSession();
         Transaction tx = null;
@@ -22,8 +22,8 @@ public class MessageFacade {
         try {
             tx = session.beginTransaction();
             Message messageObject = new Message();
-            messageObject.setMessageText(message);
-            messageObject.setMessageSource(clientID.toString());
+            messageObject.setMessageText(text);
+            messageObject.setMessageSource(source);
             messageId = (Integer) session.save(messageObject);
             tx.commit();
 

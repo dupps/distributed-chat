@@ -122,7 +122,7 @@ public class ChatServer implements Runnable, ClientHandler {
             remove(source);
 
         } else {
-            messageFacade.persistMessage(com.getPayload(), source.getID());
+            messageFacade.persistMessage(com.getPayload(), source.getUsername());
             for (Client client : authenticatedClients.values()) {
                 Communication comObj = new Communication(ComType.MESSAGE);
                 comObj.setUsername(source.getUsername());
