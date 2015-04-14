@@ -93,13 +93,17 @@ public class ChatServer implements Runnable, ClientHandler {
         UUID token;
         token = new Authenticator().authenticate(com.getUsername(), com.getPassword());
         if (token != null) {
+            String username = com.getUsername();
+            client.setUsername(username);
             authenticatedClients.put(token, client);
             Communication comObj = new Communication(ComType.AUTH);
             comObj.setToken(token);
+            comObj.setUsername(username);
             String json = new Gson().toJson(comObj);
             client.send(json);
 
         } else {
+            remove(client);
             System.out.println("Authentication failed for user " + com.getUsername());
         }
     }
@@ -121,8 +125,7 @@ public class ChatServer implements Runnable, ClientHandler {
             messageFacade.persistMessage(com.getPayload(), source.getID());
             for (Client client : authenticatedClients.values()) {
                 Communication comObj = new Communication(ComType.MESSAGE);
-                comObj.setUsername(Integer.toString(source.getID()));
-                // TODO: mapping of username and socket port
+                comObj.setUsername(source.getUsername());
                 comObj.setPayload(com.getPayload());
                 String json = new Gson().toJson(comObj);
                 client.send(json);

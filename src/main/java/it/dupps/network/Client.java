@@ -11,6 +11,7 @@ import java.net.Socket;
 public class Client implements IOHandler {
     private final IOThread thread;
     private final ClientHandler handler;
+    private String username;
 
     public Client(Socket socket, ClientHandler handler) throws IOException {
         this.thread = new IOThread(this, socket);
@@ -52,4 +53,11 @@ public class Client implements IOHandler {
         return thread.getID();
     }
 
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 }

@@ -164,7 +164,7 @@ public class ClientGUI extends Applet implements ClientHandler {
         if(com.getToken() != null) {
             this.token = com.getToken();
             showHistory(5);
-            //title.setText("Welcome " + this.token + "!");
+            title.setText("Welcome " + com.getUsername() + "!");
             connect.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     display.setText("");
