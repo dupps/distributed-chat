@@ -7,18 +7,21 @@ package it.dupps.server;
 import com.google.gson.Gson;
 import it.dupps.communication.ComType;
 import it.dupps.communication.Communication;
+import it.dupps.messaging.Producer;
 import it.dupps.network.Client;
 import it.dupps.persistance.Authenticator;
 import it.dupps.persistance.MessageFacade;
 import it.dupps.persistance.data.Message;
 import it.dupps.persistance.utils.HibernateUtils;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
+import javax.jms.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 
-public class ChatServer implements Runnable, ClientHandler {
+public class ChatServer implements Runnable, ClientHandler, MessageListener {
 
     private Set<Client> clients = Collections.synchronizedSet(new HashSet<Client>());
     private Map<UUID, Client> authenticatedClients = new HashMap<UUID, Client>();
@@ -26,14 +29,35 @@ public class ChatServer implements Runnable, ClientHandler {
     private Thread thread = null;
     private MessageFacade messageFacade = new MessageFacade();
 
+    private String brokerURL = "tcp://localhost:61616";
+    private String topicName = "chatserver";
+    private Producer producer;
+
     public ChatServer(int port) {
         try {
             System.out.println("Binding to port " + port + ", please wait  ...");
             server = new ServerSocket(port);
             System.out.println("Server started: " + server);
             start();
+
+            // ActiveMQ Consumer
+            ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerURL);
+            Connection connection = connectionFactory.createConnection();
+            String clientId = UUID.randomUUID().toString();
+            connection.setClientID(clientId);
+            connection.start();
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Topic topic = session.createTopic(topicName);
+            MessageConsumer consumer = session.createDurableSubscriber(topic, clientId);
+            consumer.setMessageListener(this);
+
+            producer = new Producer(brokerURL, topicName);
+
         } catch (IOException ioe) {
             System.out.println("Can not bind to port " + port + ": " + ioe.getMessage());
+        } catch (JMSException e) {
+            System.out.println("Caught:" + e);
+            e.printStackTrace();
         }
     }
 
@@ -42,6 +66,7 @@ public class ChatServer implements Runnable, ClientHandler {
             try {
                 System.out.println("Waiting for a client ...");
                 addThread(server.accept());
+
             } catch (IOException ioe) {
                 System.out.println("Server accept error: " + ioe);
                 stop();
@@ -122,13 +147,10 @@ public class ChatServer implements Runnable, ClientHandler {
             remove(source);
 
         } else {
-            messageFacade.persistMessage(com.getPayload(), source.getUsername());
-            for (Client client : authenticatedClients.values()) {
-                Communication comObj = new Communication(ComType.MESSAGE);
-                comObj.setUsername(source.getUsername());
-                comObj.setPayload(com.getPayload());
-                String json = new Gson().toJson(comObj);
-                client.send(json);
+            try {
+                producer.send(source, com);
+            } catch (JMSException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -170,4 +192,34 @@ public class ChatServer implements Runnable, ClientHandler {
         }
     }
 
+    public void onMessage(javax.jms.Message message) {
+        try {
+            if (message instanceof TextMessage) {
+                TextMessage txtMessage = (TextMessage) message;
+                String text = txtMessage.getText();
+                System.out.println("Message received: " + txtMessage.getText());
+
+                Communication com = null;
+                try {
+                    com = new Gson().fromJson(text, Communication.class);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                if (com != null) {
+                    for (Client client : authenticatedClients.values()) {
+                        Communication comObj = new Communication(ComType.MESSAGE);
+                        comObj.setUsername(com.getUsername());
+                        comObj.setPayload(com.getPayload());
+                        String json = new Gson().toJson(comObj);
+                        client.send(json);
+                    }
+                }
+            } else {
+                System.out.println("Invalid message received.");
+            }
+        } catch (JMSException e) {
+            System.out.println("Caught:" + e);
+            e.printStackTrace();
+        }
+    }
 }
