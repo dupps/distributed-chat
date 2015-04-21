@@ -8,11 +8,15 @@ import org.hibernate.cfg.Configuration;
  * Created by dupps on 02.03.15.
  */
 public enum HibernateUtils {
-
     INSTANCE;
-    public static SessionFactory sessionFactory = null;
 
-    private synchronized SessionFactory initialiseSessionFactory() {
+    private SessionFactory sessionFactory;
+
+    HibernateUtils() {
+        sessionFactory = initializeSessionFactory();
+    }
+
+    private SessionFactory initializeSessionFactory() {
         if (sessionFactory == null) {
             Configuration config = new Configuration();
             config.addAnnotatedClass(it.dupps.persistance.data.Message.class);
@@ -26,8 +30,6 @@ public enum HibernateUtils {
     }
 
     public SessionFactory getSessionFactory() {
-        SessionFactory factory = (sessionFactory == null) ?
-                initialiseSessionFactory() : sessionFactory;
-        return factory;
+        return sessionFactory;
     }
 }
