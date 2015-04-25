@@ -4,6 +4,7 @@ import it.dupps.persistance.data.Message;
 import it.dupps.persistance.utils.HibernateUtils;
 import org.hibernate.*;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -24,6 +25,7 @@ public class MessageFacade {
             Message messageObject = new Message();
             messageObject.setMessageText(text);
             messageObject.setMessageSource(source);
+            messageObject.setMessageTimestamp(new Date());
             messageId = (Integer) session.save(messageObject);
             tx.commit();
 
