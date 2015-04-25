@@ -1,6 +1,4 @@
 .idea
-out
 *.iml
+out
 target
-src/main/resources/hibernate.cfg.xml
-lib
